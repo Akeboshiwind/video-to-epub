@@ -9,11 +9,14 @@ and finally extracts the frames and assembles them into an epub.
 ## Example:
 
 Turn this:
+
 [![Original video](resources/jellies.gif)](resources/jellies.mp4)
 
 Into this:
+
 [![Output epub](resources/epub-example.png)](resources/jellies.epub)
 
+Exciting eh????
 
 ## Usage
 

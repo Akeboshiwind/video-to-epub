@@ -21,7 +21,6 @@ USAGE
 # >> Get input
 
 input=$1
-# TODO: Allow outside subtitle file
 subs="$2"
 
 

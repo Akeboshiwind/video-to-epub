@@ -20,7 +20,7 @@ USAGE
 
 # >> Get input
 
-input=$1
+input="$1"
 subs="$2"
 
 
@@ -56,7 +56,8 @@ if [ "$subs" == "" ]; then
     subs="tmp/subs.srt"
     # Extract the subtitles
     # https://superuser.com/a/927507
-    ffmpeg -i $input -map 0:s:0 $subs 2> /dev/null
+    echo "Attempting to extract subtitles from file"
+    ffmpeg -i "$input" -map 0:s:0 "$subs" 2> /dev/null
 fi
 
 if [ "$(cat $subs)" == "" ]; then
@@ -65,14 +66,16 @@ if [ "$(cat $subs)" == "" ]; then
 fi
 
 # Extract the fps
+echo "Extracting the fps"
 # https://askubuntu.com/a/110269
-fps="$(ffmpeg -i $input 2>&1 | sed -n "s/.*, \(.*\) fp.*/\1/p")"
+fps="$(ffmpeg -i "$input" 2>&1 | sed -n 's/.*, \(.*\) fp.*/\1/p')"
 
 # Parse times from the subtitles
+echo "Parsing the times from the file"
 # TODO: sort the subtitles by the sequence numver
 # TODO: delete the first line if it's empty
 # TODO: only look for the second line of a paragraph rather than grep
-times="$(grep -oE '^([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})' $subs)"
+times="$(grep -oE '^([0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3})' "$subs")"
 
 if [ "$times" == "" ]; then
     echo "error: there were no subtitles found"
@@ -103,11 +106,22 @@ function time_to_frames {
     echo $frame
 }
 
+echo "Converting times to frames"
 declare -a frames=()
+i=1
+count="$(echo "$times" | wc -l)"
+count="$((count+0))" # truncate
 while IFS= read -r line; do
+    echo "processing time $i/$count"
+    i=$((i+1))
     frame="$(time_to_frames $fps $line)"
     frames=("${frames[@]}" "$frame")
 done <<< "$times"
+
+echo "Sorting the frames"
+IFS=$'\n' frames=($(sort -n <<<"${frames[*]}"))
+unset IFS
+echo "${frames[*]}"
 
 
 
@@ -119,6 +133,7 @@ five_secs="$(echo "5*$fps" | bc)"
 five_secs="$(echo "scale=0; $five_secs/1" | bc)" # Round down
 i=1
 while [ "$i" != "${#frames[@]}" ]; do
+    echo "Processing frame $i"
     current_frame="${frames[$i]}"
     next_frame="${frames[$((i+1))]}"
     frames_difference="$((next_frame-current_frame))"
@@ -144,8 +159,6 @@ done
 
 # >> Extract the frames w/ subtitles
 
-echo "Extracting frames w/ subtitles"
-
 # Create the ffmpeg select string
 select_string=""
 for frame in "${frames[@]}"; do
@@ -154,15 +167,17 @@ done
 select_string="${select_string:1}" # remove leading '+'
 
 # Bake in subtitles
+echo "Baking in subtitles"
 # TODO: Combine with extracting frames?
 extension="${input##*.}"
 subtitled="tmp/subtitled.$extension"
-ffmpeg -i $input -vf subtitles=$subs $subtitled 2> /dev/null
+ffmpeg -i "$input" -vf subtitles="$subs" "$subtitled"
 
 # Extract frames
+echo "Extracting frames w/ subtitles"
 # https://stackoverflow.com/a/38259151
 mkdir tmp/frames
-ffmpeg -i $subtitled -vf subtitles=$subs -vf select="$select_string" -vsync 0 tmp/frames/%d.jpg 2> /dev/null
+ffmpeg -i "$subtitled" -vf subtitles="$subs" -vf select="$select_string" -vsync 0 tmp/frames/%d.jpg
 
 
 
@@ -170,4 +185,4 @@ ffmpeg -i $subtitled -vf subtitles=$subs -vf select="$select_string" -vsync 0 tm
 
 echo "Packaging as an epub"
 
-./jpeg2epub --title "${input%.*}" tmp/frames/*
+./jpeg2epub --title "${input%.*}" $(ls tmp/frames | sort -n | sed 's/\(.*\)/tmp\/frames\/\1/')

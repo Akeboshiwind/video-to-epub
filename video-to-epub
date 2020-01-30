@@ -168,18 +168,11 @@ for frame in "${frames[@]}"; do
 done
 select_string="${select_string:1}" # remove leading '+'
 
-# Bake in subtitles
-echo "Baking in subtitles"
-# TODO: Combine with extracting frames?
-extension="${input##*.}"
-subtitled="tmp/subtitled.$extension"
-ffmpeg -i "$input" -vf subtitles="$subs" "$subtitled"
-
 # Extract frames
 echo "Extracting frames w/ subtitles"
 # https://stackoverflow.com/a/38259151
 mkdir tmp/frames
-ffmpeg -i "$subtitled" -vf subtitles="$subs" -vf select="$select_string" -vsync 0 tmp/frames/%d.jpg
+ffmpeg -i "$input" -vf "select=$select_string,subtitles=$subs" -vsync 0 tmp/frames/%d.jpg
 
 
 

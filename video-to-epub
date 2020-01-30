@@ -95,10 +95,13 @@ function time_to_frames {
     # Ignoring the milliseconds bit seems to work just fine
     seconds="${time:6:2}"
     seconds="$((10#$seconds))"
-    seconds="$((seconds + 1))" # round up so we're in the bounds
+    #seconds="$((seconds + 1))" # round up so we're in the bounds
+    milliseconds="${time:9:3}"
+    milliseconds="$((10#$milliseconds))"
+    milliseconds="$((milliseconds + 1))" # round up so we're in the bounds
 
     # Combine into seconds
-    seconds="$(echo "($hours*60*60)+($minutes*60)+$seconds" | bc)"
+    seconds="$(echo "($hours*60*60)+($minutes*60)+$seconds+($milliseconds/1000)" | bc)"
     frame="$(echo "$seconds*$fps" | bc)"
     # Round up to the next frame
     # https://stackoverflow.com/a/32797696
@@ -121,7 +124,6 @@ done <<< "$times"
 echo "Sorting the frames"
 IFS=$'\n' frames=($(sort -n <<<"${frames[*]}"))
 unset IFS
-echo "${frames[*]}"
 
 
 

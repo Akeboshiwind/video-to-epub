@@ -88,24 +88,18 @@ function time_to_frames {
     time=$2
 
     # parse time
-    hours="${time:0:2}"
-    hours="$((10#$hours))" # Convert to base 10 https://stackoverflow.com/a/24777667
-    minutes="${time:3:2}"
-    minutes="$((10#$minutes))"
-    # Ignoring the milliseconds bit seems to work just fine
-    seconds="${time:6:2}"
-    seconds="$((10#$seconds))"
-    #seconds="$((seconds + 1))" # round up so we're in the bounds
-    milliseconds="${time:9:3}"
-    milliseconds="$((10#$milliseconds))"
-    milliseconds="$((milliseconds + 1))" # round up so we're in the bounds
+    # Convert to base 10 https://stackoverflow.com/a/24777667
+    hours="$((10#${time:0:2}))"
+    minutes="$((10#${time:3:2}))"
+    seconds="$((10#${time:6:2}))"
+    milliseconds="$((10#${time:9:3} + 1))" # round up so we're in the bounds
 
     # Combine into seconds
-    seconds="$(echo "($hours*60*60)+($minutes*60)+$seconds+($milliseconds/1000)" | bc)"
-    frame="$(echo "$seconds*$fps" | bc)"
+    seconds="($hours*60*60)+($minutes*60)+$seconds+($milliseconds/1000)"
+    frame="($seconds)*$fps"
     # Round up to the next frame
     # https://stackoverflow.com/a/32797696
-    frame="$(echo "scale=0; ($frame+0.5)/1" | bc)"
+    frame="$(echo "scale=0; (($frame)+0.5)/1" | bc)"
     echo $frame
 }
 
